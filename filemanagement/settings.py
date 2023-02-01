@@ -129,7 +129,7 @@ USE_TZ = True
 STATIC_URL = "/static/"
 #STATIC_ROOT= os.path.join(BASE_DIR, "static")
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static")
+   os.path.join(BASE_DIR, "static")
 ]
 
 
@@ -148,7 +148,7 @@ AUTHENTICATION_BACKENDS =['student_management_app.EmailBackEnd.EmailBackEnd']
 
 EMAIL_HOST="smtp.gmail.com"
 EMAIl_PORT=587
-EMAIL_HOST_USER="edemdoamekpor7@gmail.com"
-EMAIL_HOST_PASSWORD="wwwgasmtywdmefik"
+EMAIL_HOST_USER="projectpython360@gmail.com"
+EMAIL_HOST_PASSWORD="bmzvokmozgpeixte"
 EMAIL_USE_TLS=True
 DEFAULT_FROM_EMAIL="Student management System edemdoamekpor7@gmail.com"

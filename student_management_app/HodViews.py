@@ -3,11 +3,12 @@ from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 import datetime
+from django.views.decorators.csrf import csrf_exempt
 
 from django.urls import reverse
 
 #from student_management_app.forms import AddStudentForm, EditStudentForm
-from student_management_app.models import CustomUser, Staff, Courses, Subjects, Student, SessionYearModel
+from student_management_app.models import CustomUser, Staff, Courses, Subjects, Student, SessionYearModel, FeedbackStudent, FeedbackStaff
 
 
 def admin_home(request):
@@ -316,3 +317,57 @@ def add_session_save(request):
             return HttpResponseRedirect(reverse("manage_session"))
 
 
+
+@csrf_exempt
+def check_email_exist(request):
+    email=request.POST.get("email")
+    user_obj=CustomUser.objects.filter(email=email).exists()
+    if user_obj:
+        return HttpResponse(True)
+    else:
+        return HttpResponse(False)
+
+@csrf_exempt
+def check_username_exist(request):
+    username=request.POST.get("username")
+    user_obj=CustomUser.objects.filter(username=username).exists()
+    if user_obj:
+        return HttpResponse(True)
+    else:
+        return HttpResponse(False)
+
+
+def student_feedback_message(request):
+    feedbacks=FeedbackStudent.objects.all()
+    return render(request,"hod_template/student_feedback_template.html",{"feedbacks":feedbacks})
+
+@csrf_exempt
+def student_feedback_message_replied(request):
+    feedback_id=request.POST.get("id")
+    feedback_message=request.POST.get("message")
+
+    try:
+        feedback=FeedbackStudent.objects.get(id=feedback_id)
+        feedback.feedback_reply=feedback_message
+        feedback.save()
+        return HttpResponse("True")
+    except:
+        return HttpResponse("False")
+
+
+def staff_feedback_message(request):
+    feedbacks=FeedbackStaff.objects.all()
+    return render(request,"hod_template/staff_feedback_template.html",{"feedbacks":feedbacks})
+
+@csrf_exempt
+def staff_feedback_message_replied(request):
+    feedback_id=request.POST.get("id")
+    feedback_message=request.POST.get("message")
+
+    try:
+        feedback=FeedbackStaff.objects.get(id=feedback_id)
+        feedback.feedback_reply=feedback_message
+        feedback.save()
+        return HttpResponse("True")
+    except:
+        return HttpResponse("False")
