@@ -165,4 +165,4 @@ EMAIL_HOST_PASSWORD="bmzvokmozgpeixte"
 EMAIL_USE_TLS=True
 DEFAULT_FROM_EMAIL="Student management System edemdoamekpor7@gmail.com"
 
-CSRF_TRUSTED_ORIGINS = ["https://yourdomain.com"]
+CSRF_TRUSTED_ORIGINS = ["https://student-management-app-production.up.railway.app/"]
