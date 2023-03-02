@@ -1,18 +1,77 @@
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, redirect
-import datetime
+#import datetime, requests
 from django.views.decorators.csrf import csrf_exempt
 
 from django.urls import reverse
 
 #from student_management_app.forms import AddStudentForm, EditStudentForm
-from student_management_app.models import CustomUser, Staff, Courses, Subjects, Student, SessionYearModel, FeedbackStudent, FeedbackStaff
+from student_management_app.models import *
+import json
 
+from .filters import StaffFilter
+
+#Report
+from io import BytesIO
+from django.template.loader import get_template
+from django.views import View
+#from xhtml2pdf import pisa
 
 def admin_home(request):
-    return render(request,"hod_template/home_content.html")
+    student_count1=Student.objects.all().count()
+    staff_count=Staff.objects.all().count()
+    subject_count=Subjects.objects.all().count()
+    course_count=Courses.objects.all().count()
+
+    course_all=Courses.objects.all()
+    course_name_list=[]
+    subject_count_list=[]
+    student_count_list_in_course=[]
+    for course in course_all:
+        subjects=Subjects.objects.filter(course_id=course.id).count()
+        students=Student.objects.filter(course_id=course.id).count()
+        course_name_list.append(course.course_name)
+        subject_count_list.append(subjects)
+        student_count_list_in_course.append(students)
+
+    subjects_all=Subjects.objects.all()
+    subject_list=[]
+    student_count_list_in_subject=[]
+    for subject in subjects_all:
+        course=Courses.objects.get(id=subject.course_id.id)
+        student_count=Student.objects.filter(course_id=course.id).count()
+        subject_list.append(subject.subject_name)
+        student_count_list_in_subject.append(student_count)
+
+    staffs=Staff.objects.all()
+    attendance_present_list_staff=[]
+    attendance_absent_list_staff=[]
+    staff_name_list=[]
+    for staff in staffs:
+        subject_ids=Subjects.objects.filter(staff_id=staff.admin.id)
+        attendance=Attendance.objects.filter(subject_id__in=subject_ids).count()
+        leaves=LeaveReportStaff.objects.filter(staff_id=staff.id,leave_status=1).count()
+        attendance_present_list_staff.append(attendance)
+        attendance_absent_list_staff.append(leaves)
+        staff_name_list.append(staff.admin.username)
+
+    students_all=Student.objects.all()
+    attendance_present_list_student=[]
+    attendance_absent_list_student=[]
+    student_name_list=[]
+    for student in students_all:
+        attendance=AttendanceReport.objects.filter(student_id=student.id,status=True).count()
+        absent=AttendanceReport.objects.filter(student_id=student.id,status=False).count()
+        leaves=LeaveReportStudent.objects.filter(student_id=student.id,leave_status=1).count()
+        attendance_present_list_student.append(attendance)
+        attendance_absent_list_student.append(leaves+absent)
+        student_name_list.append(student.admin.username)
+
+
+    return render(request,"hod_template/home_content.html",{"student_count":student_count1,"staff_count":staff_count,"subject_count":subject_count,"course_count":course_count,"course_name_list":course_name_list,"subject_count_list":subject_count_list,"student_count_list_in_course":student_count_list_in_course,"student_count_list_in_subject":student_count_list_in_subject,"subject_list":subject_list,"staff_name_list":staff_name_list,"attendance_present_list_staff":attendance_present_list_staff,"attendance_absent_list_staff":attendance_absent_list_staff,"student_name_list":student_name_list,"attendance_present_list_student":attendance_present_list_student,"attendance_absent_list_student":attendance_absent_list_student})
+
 
 
 def add_staff(request):
@@ -210,7 +269,7 @@ def edit_student_save(request):
             filename=fs.save(profile_pic.name,profile_pic)
             profile_pic_url=fs.url(filename)
         else:
-            profile_pic_url=None
+            profile_pic_url = None
 
 
         try:
@@ -371,3 +430,203 @@ def staff_feedback_message_replied(request):
         return HttpResponse("True")
     except:
         return HttpResponse("False")
+
+
+def staff_leave_view(request):
+    leaves=LeaveReportStaff.objects.all()
+    return render(request,"hod_template/staff_leave_view.html",{"leaves":leaves})
+
+def student_leave_view(request):
+    leaves=LeaveReportStudent.objects.all()
+    return render(request,"hod_template/student_leave_view.html",{"leaves":leaves})
+
+def student_approve_leave(request,leave_id):
+    leave=LeaveReportStudent.objects.get(id=leave_id)
+    leave.leave_status=1
+    leave.save()
+    return HttpResponseRedirect(reverse("student_leave_view"))
+
+def student_disapprove_leave(request,leave_id):
+    leave=LeaveReportStudent.objects.get(id=leave_id)
+    leave.leave_status=2
+    leave.save()
+    return HttpResponseRedirect(reverse("student_leave_view"))
+
+
+def staff_approve_leave(request,leave_id):
+    leave=LeaveReportStaff.objects.get(id=leave_id)
+    leave.leave_status=1
+    leave.save()
+    return HttpResponseRedirect(reverse("staff_leave_view"))
+
+
+def staff_disapprove_leave(request,leave_id):
+    leave=LeaveReportStaff.objects.get(id=leave_id)
+    leave.leave_status=2
+    leave.save()
+    return HttpResponseRedirect(reverse("staff_leave_view"))
+
+
+def admin_view_attendance(request):
+    subjects=Subjects.objects.all()
+    session_year_id=SessionYearModel.objects.all()
+    return render(request,"hod_template/admin_view_attendance.html",{"subjects":subjects,"session_year_id":session_year_id})
+
+@csrf_exempt
+def admin_get_attendance_dates(request):
+    subject=request.POST.get("subject")
+    session_year_id=request.POST.get("session_year_id")
+    subject_obj=Subjects.objects.get(id=subject)
+    session_year_obj=SessionYearModel.objects.get(id=session_year_id)
+    attendance=Attendance.objects.filter(subject_id=subject_obj,session_year_id=session_year_obj)
+    attendance_obj=[]
+    for attendance_single in attendance:
+        data={"id":attendance_single.id,"attendance_date":str(attendance_single.attendance_date),"session_year_id":attendance_single.session_year_id.id}
+        attendance_obj.append(data)
+
+    return JsonResponse(json.dumps(attendance_obj),safe=False)
+
+
+@csrf_exempt
+def admin_get_attendance_student(request):
+    attendance_date=request.POST.get("attendance_date")
+    attendance=Attendance.objects.get(id=attendance_date)
+
+    attendance_data=AttendanceReport.objects.filter(attendance_id=attendance)
+    list_data=[]
+
+    for student in attendance_data:
+        data_small={"id":student.student_id.admin.id,"name":student.student_id.admin.first_name+" "+student.student_id.admin.last_name,"status":student.status}
+        list_data.append(data_small)
+    return JsonResponse(json.dumps(list_data),content_type="application/json",safe=False)
+
+
+
+def admin_profile(request):
+    user=CustomUser.objects.get(id=request.user.id)
+    return render(request,"hod_template/admin_profile.html",{"user":user})
+
+def admin_profile_save(request):
+    if request.method!="POST":
+        return HttpResponseRedirect(reverse("admin_profile"))
+    else:
+        first_name=request.POST.get("first_name")
+        last_name=request.POST.get("last_name")
+        password=request.POST.get("password")
+        try:
+            customuser=CustomUser.objects.get(id=request.user.id)
+            customuser.first_name=first_name
+            customuser.last_name=last_name
+            #if password!=None and password!="":
+             #   customuser.set_password(password)
+            customuser.save()
+            messages.success(request, "Successfully Updated Profile")
+            return HttpResponseRedirect(reverse("admin_profile"))
+        except:
+            messages.error(request, "Failed to Update Profile")
+            return HttpResponseRedirect(reverse("admin_profile"))
+
+
+
+def search_staff(request):
+    search = request.POST.get('table_search')
+    if request.method == 'POST':
+        staffs = Staff.objects.filter(address__icontains=search)
+        return render(request,"hod_template/search_staff.html", {"search":search, "staffs":staffs})
+        
+    else:
+        return render(request,"hod_template/manage_staff_template.html")
+
+
+def search_student(request):
+    search = request.POST.get('table_search')
+    #if request.method == 'POST':
+        #students = Student.objects.filter(address__icontains=search) or Student.objects.filter(gender__icontains=search)
+        #return render(request,"hod_template/search_student.html", {"search":search, "students":students})
+    if request.method =="POST":
+        user = CustomUser.objects.get(user_type=3, first_name__icontains=search)
+        a = user.student
+        students = []
+        students.append(a)
+
+        return render(request,"hod_template/search_student.html", {"search":search, "students":students})
+        
+
+    else:
+        return render(request,"hod_template/manage_student_template.html")
+
+
+
+
+
+
+
+
+
+
+#Report generation
+from django.http import HttpResponse, HttpResponseRedirect
+
+from django.views.generic import View
+from django.template.loader import get_template
+from .reportPDF import render_to_pdf
+
+
+
+#For staff
+class Staff_generatePDF(View):
+    def get(self, request, *args, **kwargs):
+        staffs=Staff.objects.all()
+        count = staffs.count()
+        template = get_template('reports/staff_report.html')
+        context = {
+            "staffs": staffs,
+            "total_staffs": count
+            }
+        html = template.render(context)
+        pdf = render_to_pdf('reports/staff_report.html', context)
+        if pdf:
+            #return HttpResponse(pdf, content_type='application/pdf')
+            ##to force a download of pdf
+            response = HttpResponse(pdf, content_type='application/pdf')
+            filename = "Report_%s.pdf" %("Total Staff Report")
+            content = "inline; filename='%s'" %(filename)
+            #response['Content-Disposition'] = content
+            download = request.GET.get('download')
+            if download:
+                content = "attachment; filename='%s'" %(filename)
+            response['Content-Disposition'] = content
+            return response
+        return HttpResponse('Not found')
+    
+
+#For students
+
+class Student_generatePDF(View):
+    def get(self, request, *args, **kwargs):
+        students=Student.objects.all()
+        count = students.count()
+        template = get_template('reports/student_report.html')
+        context = {
+            "students": students,
+            "total_students": count
+            }
+        html = template.render(context)
+        pdf = render_to_pdf('reports/student_report.html', context)
+        if pdf:
+            #return HttpResponse(pdf, content_type='application/pdf')
+            ##to force a download of pdf
+            response = HttpResponse(pdf, content_type='application/pdf')
+            filename = "Report_%s.pdf" %("Total Student Report")
+            content = "inline; filename='%s'" %(filename)
+            #response['Content-Disposition'] = content
+            download = request.GET.get('download')
+            if download:
+                content = "attachment; filename='%s'" %(filename)
+            response['Content-Disposition'] = content
+            return response
+        return HttpResponse('Not found')
+    
+
+def base(request):
+    return render(request, 'reports/student_Rcard.html')

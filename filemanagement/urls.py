@@ -17,10 +17,24 @@ from django.contrib import admin
 from django.urls import path,include
 from django.conf.urls.static import static
 from filemanagement import settings
-from student_management_app import views, HodViews, StaffViews, StudentViews
+from student_management_app import views, HodViews, StaffViews, StudentViews, reportPDF
 
+from student_management_app.EditResultViewClass import EditResultViewClass
+
+#report
 
 urlpatterns = [
+    ##Signup
+    
+    path('staff_signup', views.staff_signup, name='staff_signup'),
+    path('do_staff_signup', views.do_staff_signup, name='do_staff_signup'),
+    path('student_signup', views.student_signup, name='student_signup'),
+    path('do_student_signup', views.do_student_signup, name='do_student_signup'),
+    path('admin_signup', views.admin_signup, name='admin_signup'),
+    path('do_admin_signup', views.do_admin_signup, name='do_admin_signup'),
+    path('sign_ups', views.sign_ups, name='sign_ups'),
+    
+
     #### For sending email....
     path('accounts/',include('django.contrib.auth.urls')),
     ####
@@ -61,6 +75,26 @@ urlpatterns = [
     path('student_feedback_message_replied', HodViews.student_feedback_message_replied,name="student_feedback_message_replied"),
     path('staff_feedback_message', HodViews.staff_feedback_message,name="staff_feedback_message"),
     path('staff_feedback_message_replied', HodViews.staff_feedback_message_replied,name="staff_feedback_message_replied"),
+    path('student_leave_view', HodViews.student_leave_view,name="student_leave_view"),
+    path('staff_leave_view', HodViews.staff_leave_view,name="staff_leave_view"),
+    path('student_approve_leave/<str:leave_id>', HodViews.student_approve_leave,name="student_approve_leave"),
+    path('student_disapprove_leave/<str:leave_id>', HodViews.student_disapprove_leave,name="student_disapprove_leave"),
+    path('staff_disapprove_leave/<str:leave_id>', HodViews.staff_disapprove_leave,name="staff_disapprove_leave"),
+    path('staff_approve_leave/<str:leave_id>', HodViews.staff_approve_leave,name="staff_approve_leave"),
+    path('admin_view_attendance', HodViews.admin_view_attendance,name="admin_view_attendance"),
+    path('admin_get_attendance_dates', HodViews.admin_get_attendance_dates,name="admin_get_attendance_dates"),
+    path('admin_get_attendance_student', HodViews.admin_get_attendance_student,name="admin_get_attendance_student"),
+    path('admin_profile', HodViews.admin_profile,name="admin_profile"),
+    path('admin_profile_save', HodViews.admin_profile_save,name="admin_profile_save"),
+    path('search_staff', HodViews.search_staff,name="search_staff"),
+    path('search_student', HodViews.search_student,name="search_student"),
+    #path('admin_send_notification_staff', HodViews.admin_send_notification_staff,name="admin_send_notification_staff"),
+    #path('admin_send_notification_student', HodViews.admin_send_notification_student,name="admin_send_notification_student"),
+    #path('send_student_notification', HodViews.send_student_notification,name="send_student_notification"),
+    #path('send_staff_notification', HodViews.send_staff_notification,name="send_staff_notification"),
+
+
+
 
 #   Staff URL Path
     path('get_students', StaffViews.get_students, name="get_students"),
@@ -76,6 +110,14 @@ urlpatterns = [
     path('staff_apply_leave_save', StaffViews.staff_apply_leave_save, name="staff_apply_leave_save"),
     path('staff_feedback', StaffViews.staff_feedback, name="staff_feedback"),
     path('staff_feedback_save', StaffViews.staff_feedback_save, name="staff_feedback_save"),
+    path('staff_profile', StaffViews.staff_profile, name="staff_profile"),
+    path('staff_profile_save', StaffViews.staff_profile_save, name="staff_profile_save"),
+    path('staff_fcmtoken_save', StaffViews.staff_fcmtoken_save, name="staff_fcmtoken_save"),
+    path('staff_add_result', StaffViews.staff_add_result, name="staff_add_result"),
+    path('save_student_result', StaffViews.save_student_result, name="save_student_result"),
+    path('fetch_result_student',StaffViews.fetch_result_student, name="fetch_result_student"),
+
+    path('edit_student_result',EditResultViewClass.as_view(), name="edit_student_result"),
     
     # Student URL path
     path('student_home', StudentViews.student_home, name="student_home"),
@@ -85,8 +127,20 @@ urlpatterns = [
     path('student_apply_leave_save', StudentViews.student_apply_leave_save, name="student_apply_leave_save"),
     path('student_feedback', StudentViews.student_feedback, name="student_feedback"),
     path('student_feedback_save', StudentViews.student_feedback_save, name="student_feedback_save"),
+    path('student_profile', StudentViews.student_profile, name="student_profile"),
+    path('student_profile_save', StudentViews.student_profile_save, name="student_profile_save"),
+    path('student_fcmtoken_save', StudentViews.student_fcmtoken_save, name="student_fcmtoken_save"),
+    path('student_view_result',StudentViews.student_view_result,name="student_view_result"),
 
     
+    #report
+    path('total_staff_pdf', HodViews.Staff_generatePDF.as_view(), name="total_staff_pdf"),
+    path('total_student_pdf', HodViews.Student_generatePDF.as_view(), name="total_student_pdf"),
+    path('render_report', reportPDF.render_to_pdf, name="render_report"),
+    path('student_report_card', StudentViews.Student_reportcard_generatePDF.as_view(), name="student_report_card"),
+
+
+    path('base', HodViews.base, name="base"),
     
 
-]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)#+static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)+static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

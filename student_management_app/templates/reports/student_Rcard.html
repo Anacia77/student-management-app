@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <h1>Student Report Card</h1>
+  <table border="">
+    <tr>
+        <th>ID</th>
+        <th>Subject</th>
+        <th>Assignment Marks</th>
+        <th>Exam Marks</th>
+        <th>Grade</th>
+    </tr>
+    {% for row in studentresult %}
+         <tr>
+             <td>{{ row.id }}</td>
+             <td>{{ row.subject_id.subject_name }}</td>
+             <td>{{ row.subject_assignment_marks }}</td>
+             <td>{{ row.subject_exam_marks }}</td>
+             <td>
+                 {% if row.total_marks >= 70 %}
+                 <span class="alert alert-success">A</span>
+                 {% elif row.total_marks >= 50 and row.total_marks <= 69 %}
+                 <span class="alert alert-success">B</span>
+                 {% elif row.total_marks >= 40 and row.total_marks <= 49 %}
+                 <span class="alert alert-success">C</span>
+                 {% elif row.total_marks >= 20 and row.total_marks <= 39 %}
+                 <span class="alert alert-danger">D</span>
+                 {% else %}
+                  <span class="alert alert-danger">F</span>
+                 {% endif %}
+             </td>
+         </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>

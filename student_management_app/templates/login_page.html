@@ -57,6 +57,9 @@
           <div class="col-12 text-center">
             <a href="{% url 'password_reset' %}">Reset Password</a>
          </div>
+         <div class="col-12 text-center">
+          <a href="{% url 'sign_ups' %}"><b>Signup</b></a>
+       </div>
           {% if messages %}
           <div class="col-12">
             {% for message in messages %}
